@@ -77,6 +77,20 @@
           "description": "Lights or switches."
         }
       }
+    },
+    "start": {
+      "name": "Turn on with timer",
+      "description": "Turns the light on with a timer of a different length, for this cycle only.",
+      "fields": {
+        "entity_id": {
+          "name": "Lights",
+          "description": "Lights or switches."
+        },
+        "minutes": {
+          "name": "Minutes",
+          "description": "Timer length for this cycle (default: the configured one)."
+        }
+      }
     }
   }
 }

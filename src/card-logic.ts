@@ -113,7 +113,8 @@ export function lightError(l: LightCfg, all: LightCfg[]): string | null {
   if (!validLightEntity(l.entity)) return "Scegli una luce, presa o ventola valida.";
   if (all.filter((x) => x.entity === l.entity).length > 1) return "Questa luce è già nell'elenco.";
   if (!Number.isInteger(l.minutes) || l.minutes < 1 || l.minutes > 720) return "La durata deve essere tra 1 minuto e 12 ore.";
-  if (l.motion && !/^(binary_sensor|input_boolean)\.[a-z0-9_]+$/.test(l.motion)) return "Il sensore di movimento non è valido.";
+  if (l.motions.length > 6) return "Al massimo 6 sensori per luce.";
+  if (l.motions.some((m) => !/^(binary_sensor|input_boolean)\.[a-z0-9_]+$/.test(m))) return "Un sensore di movimento non è valido.";
   return null;
 }
 
@@ -127,7 +128,7 @@ export function lightsError(lights: LightCfg[]): string | null {
 
 export function newLight(entity: string, friendly?: string): LightCfg {
   const name = friendly?.trim() || entity.split(".")[1].replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
-  return { entity, name, minutes: 5, enabled: true, motion: "", warn_seconds: 0 };
+  return { entity, name, minutes: 5, enabled: true, motions: [], warn_seconds: 0 };
 }
 
 /** Entità che si possono ancora aggiungere (luci, prese, ventole), in ordine di nome. */
@@ -138,11 +139,19 @@ export function addableEntities(states: Record<string, HassEntity>, taken: strin
     .sort((a, b) => a.name.localeCompare(b.name, "it"));
 }
 
-export function motionEntities(states: Record<string, HassEntity>): { id: string; name: string }[] {
+const MOTION_CLASSES = ["motion", "occupancy", "presence", "door", "opening", "garage_door", "window"];
+
+/** Sensori che si possono usare per rinnovare il timer: movimento, presenza e aperture; i già scelti sono esclusi. */
+export function motionEntities(states: Record<string, HassEntity>, taken: string[] = []): { id: string; name: string }[] {
   return Object.values(states)
-    .filter((s) => entityDomain(s.entity_id) === "binary_sensor" && ["motion", "occupancy", "presence"].includes(String(s.attributes.device_class)))
+    .filter((s) => entityDomain(s.entity_id) === "binary_sensor" && MOTION_CLASSES.includes(String(s.attributes.device_class)) && !taken.includes(s.entity_id))
     .map((s) => ({ id: s.entity_id, name: String(s.attributes.friendly_name ?? s.entity_id) }))
     .sort((a, b) => a.name.localeCompare(b.name, "it"));
+}
+
+export function friendlyName(states: Record<string, HassEntity>, id: string): string {
+  const n = states[id]?.attributes.friendly_name;
+  return typeof n === "string" && n ? n : id;
 }
 
 // ---- statistiche

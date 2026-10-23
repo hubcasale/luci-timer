@@ -103,14 +103,15 @@ def _register_services(hass: HomeAssistant) -> None:
 
     def _handler(action: str):
         async def _run(call: ServiceCall) -> None:
-            minutes = call.data.get("minutes", 5)
+            minutes = call.data.get("minutes")
             for entity in call.data["entity_id"]:
                 for c in _controllers(hass):
                     c.action(entity, action, minutes)
 
         return _run
 
-    hass.services.async_register(DOMAIN, "extend", _handler("extend"), schema=vol.Schema({**base, vol.Optional("minutes", default=5): vol.All(int, vol.Range(min=1, max=MAX_MINUTES))}))
+    hass.services.async_register(DOMAIN, "extend", _handler("extend"), schema=vol.Schema({**base, vol.Optional("minutes"): vol.All(int, vol.Range(min=1, max=MAX_MINUTES))}))
+    hass.services.async_register(DOMAIN, "start", _handler("start"), schema=vol.Schema({**base, vol.Optional("minutes"): vol.All(int, vol.Range(min=1, max=MAX_MINUTES))}))
     hass.services.async_register(DOMAIN, "hold", _handler("hold"), schema=vol.Schema(base))
     hass.services.async_register(DOMAIN, "release", _handler("release"), schema=vol.Schema(base))
 
@@ -179,7 +180,7 @@ def ws_update(hass: HomeAssistant, connection: websocket_api.ActiveConnection, m
         vol.Required("type"): "luci_timer/action",
         vol.Optional("entry_id"): str,
         vol.Required("entity"): str,
-        vol.Required("action"): vol.In(["extend", "hold", "release", "off_now", "on", "cancel"]),
+        vol.Required("action"): vol.In(["extend", "hold", "release", "start", "off_now", "on", "cancel"]),
         vol.Optional("minutes", default=5): vol.All(int, vol.Range(min=1, max=MAX_MINUTES)),
     }
 )
@@ -189,7 +190,7 @@ def ws_action(hass: HomeAssistant, connection: websocket_api.ActiveConnection, m
     if c is None:
         connection.send_error(msg["id"], "not_found", "Timer luci non configurato")
         return
-    ok = c.action(msg["entity"], msg["action"], msg["minutes"])
+    ok = c.action(msg["entity"], msg["action"], msg.get("minutes"))
     connection.send_result(msg["id"], {"ok": ok})
 
 

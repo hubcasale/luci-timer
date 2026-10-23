@@ -34,10 +34,11 @@ defs.forEach(([e, name, min, st, left]) => {
   states[ent.scadenza] = { entity_id:ent.scadenza, state: left!==null? new Date(now+left*1000).toISOString():"unknown", attributes:{} };
   states[ent.durata] = { entity_id:ent.durata, state:String(min), attributes:{} };
   states[ent.attivo] = { entity_id:ent.attivo, state: st==="timer_disattivato"?"off":"on", attributes:{} };
-  lights.push({ entity:e, name, minutes:min, enabled: st!=="timer_disattivato", motion: e==="light.luce_scale"?"binary_sensor.pir_scale":"", warn_seconds: e==="light.luce_scale"?20:0, key, status:st, end:null, remaining:null, entities:ent });
+  lights.push({ entity:e, name, minutes:min, enabled: st!=="timer_disattivato", motions: e==="light.luce_scale"?["binary_sensor.pir_scale","binary_sensor.porta_ingresso"]:[], warn_seconds: e==="light.luce_scale"?20:0, key, status:st, end:null, remaining:null, entities:ent });
 });
 states["binary_sensor.pir_scale"] = { entity_id:"binary_sensor.pir_scale", state:"off", attributes:{device_class:"motion", friendly_name:"PIR scale"} };
 states["switch.t_master"] = { entity_id:"switch.t_master", state:"on", attributes:{} };
+states["binary_sensor.porta_ingresso"] = { entity_id:"binary_sensor.porta_ingresso", state:"off", attributes:{device_class:"door", friendly_name:"Porta ingresso"} };
 states["light.cucina"] = { entity_id:"light.cucina", state:"off", attributes:{friendly_name:"Cucina"} };
 const info = { entry_id:"e1", title:"Timer luci", enabled:true, lights, entities:{ generale:"switch.t_master", in_corso:"sensor.t_run" } };
 const hass = { states, callService: async()=>{}, callWS: async (m) => {

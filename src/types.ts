@@ -18,7 +18,7 @@ export interface LightCfg {
   name: string;
   minutes: number;
   enabled: boolean;
-  motion: string;
+  motions: string[];
   warn_seconds: number;
 }
 

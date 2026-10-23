@@ -1,7 +1,7 @@
 import { LitElement, html, css, nothing } from "lit";
 import { property, state } from "lit/decorators.js";
 import { dialogStyles } from "./dialog-style";
-import { DURATION_CHIPS, WARN_CHOICES, addableEntities, clampMinutes, entityDomain, fmtMinutes, lightsError, motionEntities, newLight } from "./card-logic";
+import { DURATION_CHIPS, WARN_CHOICES, addableEntities, clampMinutes, entityDomain, fmtMinutes, friendlyName, lightsError, motionEntities, newLight } from "./card-logic";
 import type { HomeAssistant, LightCfg, LuciInfo } from "./types";
 
 /** Preferenze: interruttore generale, elenco delle luci con durata, movimento e avviso; si aggiungono e si tolgono luci. */
@@ -13,6 +13,7 @@ export class LuciSettingsDialog extends LitElement {
   @state() private _master = true;
   @state() private _open = "";
   @state() private _add = "";
+  @state() private _mot = "";
   @state() private _busy = false;
   @state() private _error = "";
   private _onKey = (e: KeyboardEvent) => {
@@ -22,7 +23,7 @@ export class LuciSettingsDialog extends LitElement {
   connectedCallback(): void {
     super.connectedCallback();
     window.addEventListener("keydown", this._onKey);
-    this._lights = this.info.lights.map((l) => ({ entity: l.entity, name: l.name, minutes: l.minutes, enabled: l.enabled, motion: l.motion, warn_seconds: l.warn_seconds }));
+    this._lights = this.info.lights.map((l) => ({ entity: l.entity, name: l.name, minutes: l.minutes, enabled: l.enabled, motions: [...l.motions], warn_seconds: l.warn_seconds }));
     this._master = this.info.enabled;
     this._open = this.openKey;
   }
@@ -81,7 +82,7 @@ export class LuciSettingsDialog extends LitElement {
   }
 
   private _editor(l: LightCfg) {
-    const motions = motionEntities(this.hass.states);
+    const choices = motionEntities(this.hass.states, l.motions);
     const isLight = entityDomain(l.entity) === "light";
     return html`
       <div class="ed">
@@ -102,14 +103,22 @@ export class LuciSettingsDialog extends LitElement {
         </div>
         <div class="row"><div class="t"><div class="lab">Timer attivo</div><div class="hint">Se è spento la luce resta accesa finché non la spegni.</div></div>
           <button class=${l.enabled ? "sw on" : "sw"} role="switch" aria-checked=${l.enabled ? "true" : "false"} aria-label="Timer attivo" @click=${() => this._patch(l.entity, { enabled: !l.enabled })}><span class="knob"></span></button></div>
-        <label class="f">Sensore di movimento (facoltativo)
-          <select class="txt" @change=${(e: Event) => this._patch(l.entity, { motion: (e.target as HTMLSelectElement).value })}>
-            <option value="" ?selected=${!l.motion}>Nessuno</option>
-            ${motions.map((m) => html`<option value=${m.id} ?selected=${l.motion === m.id}>${m.name}</option>`)}
-            ${l.motion && !motions.some((m) => m.id === l.motion) ? html`<option value=${l.motion} selected>${l.motion}</option>` : nothing}
-          </select>
-          <span class="hint">Alla scadenza, se c'è ancora movimento, il timer riparte invece di spegnere.</span>
-        </label>
+        <div class="f">Sensori di movimento o porte (facoltativi)
+          <div class="chips">
+            ${l.motions.map((m) => html`<span class="tag">${friendlyName(this.hass.states, m)}<button aria-label=${`Togli ${m}`} @click=${() => this._patch(l.entity, { motions: l.motions.filter((x) => x !== m) })}>✕</button></span>`)}
+            ${l.motions.length === 0 ? html`<span class="hint">Nessuno</span>` : nothing}
+          </div>
+          <div class="addrow">
+            <input class="txt" list=${`dl-mot-${l.entity}`} placeholder="binary_sensor.nome" .value=${this._mot} @input=${(e: Event) => (this._mot = (e.target as HTMLInputElement).value)} />
+            <datalist id=${`dl-mot-${l.entity}`}>${choices.map((m) => html`<option value=${m.id}>${m.name}</option>`)}</datalist>
+            <button class="btn" ?disabled=${!this._mot.trim()} @click=${() => {
+              const id = this._mot.trim();
+              if (id && !l.motions.includes(id)) this._patch(l.entity, { motions: [...l.motions, id] });
+              this._mot = "";
+            }}>Aggiungi</button>
+          </div>
+          <span class="hint">Alla scadenza, se uno di questi è ancora attivo, il timer riparte invece di spegnere.</span>
+        </div>
         ${isLight
           ? html`<div class="f">Avviso prima dello spegnimento
               <div class="chips">${WARN_CHOICES.map((w) => html`<button class=${l.warn_seconds === w ? "chip on" : "chip"} @click=${() => this._patch(l.entity, { warn_seconds: w })}>${w === 0 ? "Nessuno" : `${w} s prima`}</button>`)}</div>
@@ -138,7 +147,7 @@ export class LuciSettingsDialog extends LitElement {
                 <div class="item">
                   <button class="head2" aria-expanded=${this._open === l.entity ? "true" : "false"} @click=${() => (this._open = this._open === l.entity ? "" : l.entity)}>
                     <span class="nm">${l.name}</span>
-                    <span class="meta">${l.enabled ? fmtMinutes(l.minutes) : "timer spento"}${l.motion ? " · movimento" : ""}</span>
+                    <span class="meta">${l.enabled ? fmtMinutes(l.minutes) : "timer spento"}${l.motions.length ? ` · ${l.motions.length} ${l.motions.length === 1 ? "sensore" : "sensori"}` : ""}</span>
                     <span class="chev">${this._open === l.entity ? "▾" : "▸"}</span>
                   </button>
                   ${this._open === l.entity ? this._editor(l) : nothing}
@@ -189,6 +198,8 @@ export class LuciSettingsDialog extends LitElement {
       .u { color: var(--secondary-text-color, #727272); }
       .del { margin-top: 14px; color: #b91c1c; }
       .addrow { display: flex; gap: 8px; } .addrow .txt { flex: 1; }
+      .tag { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 6px 0 12px; border-radius: 18px; background: var(--secondary-background-color, #eee); color: var(--primary-text-color, #212121); font-size: 0.85rem; }
+      .tag button { border: 0; background: transparent; color: inherit; width: 30px; height: 30px; border-radius: 15px; cursor: pointer; }
     `,
   ];
 }

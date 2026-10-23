@@ -8,7 +8,7 @@ Sostituisce un package YAML con un timer, tre automazioni e tre cursori per ogni
 
 - Quando una luce **si accende** parte il suo timer (anche se era "non disponibile" e torna accesa, e anche se era già accesa all'avvio di Home Assistant).
 - Quando si **spegne**, per qualsiasi motivo, il timer finisce.
-- Alla **scadenza** la luce si spegne, a meno che il sensore di movimento associato (facoltativo) veda ancora movimento: in quel caso il timer riparte.
+- Alla **scadenza** la luce si spegne, a meno che uno dei sensori associati (facoltativi: movimento, presenza, porte; fino a 6 per luce) sia ancora attivo: in quel caso il timer riparte.
 - Prima dello spegnimento la luce può **abbassarsi un istante** per avvisare (facoltativo, solo luci).
 - Le scadenze sono salvate: dopo un riavvio i timer riprendono, e una luce rimasta accesa oltre la scadenza si spegne subito.
 
@@ -37,7 +37,7 @@ Una tessera per luce, con le accese in cima:
 
 In alto il riepilogo ("5 accese · 3 timer in corso"), il pulsante **Timer attivi / Timer spenti** (interruttore generale), le **Statistiche** e l'ingranaggio delle **Preferenze**.
 
-**Preferenze**: aggiungi e togli luci, e per ognuna scegli nome, durata (1 min–12 ore, con pulsanti rapidi), timer attivo o no, sensore di movimento e avviso prima dello spegnimento.
+**Preferenze**: aggiungi e togli luci, e per ognuna scegli nome, durata (1 min–12 ore, con pulsanti rapidi), timer attivo o no, sensori di movimento e avviso prima dello spegnimento.
 
 **Statistiche** (ultimi 30 giorni): accensioni, quante spente dal timer e quante a mano, durata media e un consiglio. Per esempio *«Spesso la riaccendi subito dopo la scadenza: prova 8 minuti»*, con il pulsante per applicarlo.
 
@@ -58,6 +58,7 @@ E nel dispositivo "Timer luci": `switch.timer_luci_timer_luci_attivi` (interrutt
 
 Per le automazioni (le luci sono indicate con il loro `entity_id`):
 
+- `luci_timer.start`: accende la luce con un timer di `minutes` diversi da quelli normali, solo per questo ciclo (sostituisce `timer.change`); senza `minutes` usa la durata impostata;
 - `luci_timer.extend`: prolunga di `minutes` (predefinito 5);
 - `luci_timer.hold`: tieni accesa;
 - `luci_timer.release`: riprende il timer normale.

@@ -17,13 +17,17 @@ def mk(minutes=5, **kw):
 
 
 def test_config_validation():
-    c = LightConfig.from_dict({"entity": "light.scale", "name": "", "minutes": "7.6", "motion": "binary_sensor.pir", "warn_seconds": 30})
-    assert c and c.minutes == 8 and c.name == "Scale" and c.warn_seconds == 30 and c.motion == "binary_sensor.pir"
+    c = LightConfig.from_dict({"entity": "light.scale", "name": "", "minutes": "7.6", "motions": ["binary_sensor.pir"], "warn_seconds": 30})
+    assert c and c.minutes == 8 and c.name == "Scale" and c.warn_seconds == 30 and c.motions == ("binary_sensor.pir",)
+    legacy = LightConfig.from_dict({"entity": "light.scale", "motion": "binary_sensor.old"})
+    assert legacy.motions == ("binary_sensor.old",)
+    many = LightConfig.from_dict({"entity": "light.ingresso", "motions": ["binary_sensor.a", "binary_sensor.b", "binary_sensor.a", "sensor.no", 5]})
+    assert many.motions == ("binary_sensor.a", "binary_sensor.b")
     assert LightConfig.from_dict({"entity": "climate.x"}) is None
     assert LightConfig.from_dict({"entity": "luce"}) is None
     assert LightConfig.from_dict("x") is None
-    c = LightConfig.from_dict({"entity": "switch.caffe", "minutes": 99999, "warn_seconds": 30, "motion": "sensor.no"})
-    assert c.minutes == 720 and c.warn_seconds == 0 and c.motion == ""       # niente lampeggio sugli interruttori
+    c = LightConfig.from_dict({"entity": "switch.caffe", "minutes": 99999, "warn_seconds": 30, "motions": ["sensor.no"]})
+    assert c.minutes == 720 and c.warn_seconds == 0 and c.motions == ()       # niente lampeggio sugli interruttori
     assert LightConfig.from_dict({"entity": "light.a", "minutes": 0}).minutes == 1
     assert LightConfig.from_dict({"entity": "light.a", "enabled": False}).enabled is False
     assert LightConfig.from_dict(c.to_dict()) == c
@@ -72,7 +76,7 @@ def test_expire_turns_off_and_records_cycle():
 
 
 def test_motion_renews():
-    t = mk(5, motion="binary_sensor.pir")
+    t = mk(5, motions=("binary_sensor.pir", "binary_sensor.porta"))
     t.light_changed(T0, True, True)
     assert t.tick(T0 + timedelta(minutes=5), True, True) == "renew"
     assert t.end == T0 + timedelta(minutes=10) and t.extended == 1
@@ -185,3 +189,21 @@ def test_analyze_advice():
     assert "solo una sicurezza" in a["advice"] and a["manual_median_minutes"] == 2.0
     assert analyze(_cycles(5, "manuale", 8) + _cycles(5, "scaduto", 5), 10, now)["advice"].startswith("Uso misto")
     assert analyze([], 5, now)["runs"] == 0
+
+
+def test_start_for_when_on_and_when_off():
+    t = mk(10)
+    assert t.start_for(T0, 5) is False                       # luce spenta: vale per la prossima accensione
+    t.light_changed(T0 + timedelta(seconds=2), True, True)
+    assert t.end == T0 + timedelta(seconds=2, minutes=5)
+    t.light_changed(T0 + timedelta(minutes=1), False, True)
+    t.light_changed(T0 + timedelta(minutes=2), True, True)   # il valore una tantum è già stato usato
+    assert t.end == T0 + timedelta(minutes=12)
+    t2 = mk(10)
+    t2.start_for(T0, 5)
+    t2.light_changed(T0 + timedelta(minutes=5), True, True)  # troppo tardi: scaduto il permesso di 30 secondi
+    assert t2.end == T0 + timedelta(minutes=15)
+    t3 = mk(10)
+    t3.light_changed(T0, True, True)
+    assert t3.start_for(T0 + timedelta(minutes=1), 3) is True
+    assert t3.end == T0 + timedelta(minutes=4)

@@ -29,3 +29,17 @@ release:
         entity:
           multiple: true
           domain: [light, switch, fan, input_boolean]
+start:
+  fields:
+    entity_id:
+      required: true
+      selector:
+        entity:
+          multiple: true
+          domain: [light, switch, fan, input_boolean]
+    minutes:
+      selector:
+        number:
+          min: 1
+          max: 720
+          unit_of_measurement: min

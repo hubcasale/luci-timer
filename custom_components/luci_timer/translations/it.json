@@ -77,6 +77,20 @@
           "description": "Le luci o prese."
         }
       }
+    },
+    "start": {
+      "name": "Accendi con timer",
+      "description": "Accende la luce con un timer di durata diversa da quella normale, solo per questo ciclo.",
+      "fields": {
+        "entity_id": {
+          "name": "Luci",
+          "description": "Le luci o prese."
+        },
+        "minutes": {
+          "name": "Minuti",
+          "description": "Durata del timer per questo ciclo (predefinito: quella impostata)."
+        }
+      }
     }
   }
 }

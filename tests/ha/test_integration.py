@@ -137,8 +137,9 @@ async def test_motion_renews_instead_of_turning_off(hass: HomeAssistant, freezer
     await hass.config.async_set_time_zone("Europe/Rome")
     rome = ZoneInfo("Europe/Rome")
     calls = _record(hass)
-    hass.states.async_set(PIR, "on")
-    lights = [{"entity": SCALE, "name": "Luce scale", "minutes": 5, "motion": PIR}]
+    hass.states.async_set(PIR, "off")
+    hass.states.async_set("binary_sensor.porta", "on")        # basta uno dei due sensori
+    lights = [{"entity": SCALE, "name": "Luce scale", "minutes": 5, "motions": [PIR, "binary_sensor.porta"]}]
     await _setup(hass, lights)
     t0 = datetime(2026, 11, 2, 20, 0, tzinfo=rome)
     freezer.move_to(t0)
@@ -146,7 +147,7 @@ async def test_motion_renews_instead_of_turning_off(hass: HomeAssistant, freezer
     await hass.async_block_till_done()
     await _tick(hass, freezer, t0 + timedelta(minutes=5, seconds=6))
     assert calls == []                                               # rinnovato, non spenta
-    hass.states.async_set(PIR, "off")
+    hass.states.async_set("binary_sensor.porta", "off")
     await _tick(hass, freezer, t0 + timedelta(minutes=10, seconds=15))
     assert [(c[0], c[1]) for c in calls] == [("turn_off", SCALE)]
 
@@ -282,3 +283,26 @@ async def test_card_is_served(hass: HomeAssistant, hass_client) -> None:
     client = await hass_client()
     resp = await client.get("/luci_timer_static/luci-timer-card.js")
     assert resp.status == 200
+
+
+async def test_start_service_sets_a_one_off_duration(hass: HomeAssistant) -> None:
+    """Come faceva `timer.change` per il faro del parcheggio: accende con 3 minuti invece dei 10 normali."""
+    calls = _record(hass)
+    lights = [{"entity": "light.faro", "name": "Faro", "minutes": 10}]
+    entry = await _setup(hass, lights)
+    await hass.services.async_call(DOMAIN, "start", {"entity_id": "light.faro", "minutes": 3}, blocking=True)
+    await hass.async_block_till_done()
+    assert [(c[0], c[1]) for c in calls] == [("turn_on", "light.faro")]
+    remaining = hass.data[DOMAIN][entry.entry_id].timers["light_faro"].remaining(dt_util.now())
+    assert 170 <= remaining <= 181
+    # già accesa: cambia solo la durata di questo ciclo
+    await hass.services.async_call(DOMAIN, "start", {"entity_id": "light.faro", "minutes": 7}, blocking=True)
+    remaining = hass.data[DOMAIN][entry.entry_id].timers["light_faro"].remaining(dt_util.now())
+    assert 410 <= remaining <= 421
+    assert len(calls) == 1
+
+
+async def test_legacy_motion_field_in_options(hass: HomeAssistant) -> None:
+    lights = [{"entity": SCALE, "name": "Scale", "minutes": 5, "motion": PIR}]
+    entry = await _setup(hass, lights)
+    assert hass.data[DOMAIN][entry.entry_id].timers[SCALE.replace(".", "_")].cfg.motions == (PIR,)

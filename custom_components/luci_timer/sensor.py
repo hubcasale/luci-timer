@@ -37,7 +37,7 @@ class StatusSensor(LuciEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         t = self._timer
-        return {"luce": t.cfg.entity, "durata_min": t.cfg.minutes, "movimento": t.cfg.motion or None}
+        return {"luce": t.cfg.entity, "durata_min": t.cfg.minutes, "movimento": list(t.cfg.motions)}
 
 
 class ExpirySensor(LuciEntity, SensorEntity):

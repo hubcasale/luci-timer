@@ -22,7 +22,7 @@ _LOGGER = logging.getLogger(__name__)
 
 def signature(lights: list[LightConfig]) -> tuple:
     """Ciò che richiede di ricreare le entità: quali luci, con quale nome e sensore di movimento."""
-    return tuple((l.entity, l.name, l.motion) for l in lights)
+    return tuple((l.entity, l.name, l.motions) for l in lights)
 
 
 class LuciController:
@@ -114,10 +114,7 @@ class LuciController:
         now = dt_util.now()
         changed = False
         for key, timer in self.timers.items():
-            motion = False
-            if timer.cfg.motion:
-                m = self.hass.states.get(timer.cfg.motion)
-                motion = m is not None and m.state == "on"
+            motion = any((m := self.hass.states.get(sid)) is not None and m.state == "on" for sid in timer.cfg.motions)
             effect = timer.tick(now, motion, self.master)
             if effect == "expire":
                 self._call("homeassistant", "turn_off", {"entity_id": timer.cfg.entity})
@@ -164,15 +161,22 @@ class LuciController:
             self._suppress.pop(key, None)
 
     @callback
-    def action(self, entity: str, action: str, minutes: int = 5) -> bool:
-        """Comandi dalla scheda e dai servizi: extend, hold, release, off_now, on."""
+    def action(self, entity: str, action: str, minutes: int | None = 5) -> bool:
+        """Comandi dalla scheda e dai servizi: extend, hold, release, start, off_now, on."""
         timer = self.timers.get(entity.replace(".", "_"))
         if timer is None:
             return False
         now = dt_util.now()
         ok = False
         if action == "extend":
-            ok = timer.extend(now, minutes)
+            ok = timer.extend(now, minutes or 5)
+        elif action == "start":
+            wanted = minutes or timer.cfg.minutes
+            if timer.start_for(now, wanted):
+                ok = True
+            else:
+                self._call("homeassistant", "turn_on", {"entity_id": entity})
+                ok = True
         elif action in ("hold", "cancel"):
             ok = timer.hold()
         elif action == "release":

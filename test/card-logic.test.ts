@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  addableEntities, asStatus, clampMinutes, countdown, fmtMinutes, lightError, lightsError, motionEntities, newLight, statsLine, summaryText, tileModel,
+  friendlyName, addableEntities, asStatus, clampMinutes, countdown, fmtMinutes, lightError, lightsError, motionEntities, newLight, statsLine, summaryText, tileModel,
 } from "../src/card-logic";
 import type { HassEntity, LightInfo } from "../src/types";
 
@@ -10,7 +10,7 @@ const st = (entity_id: string, state: string, attributes: Record<string, unknown
 
 function light(over: Partial<LightInfo> = {}): LightInfo {
   return {
-    entity: "light.scale", name: "Scale", minutes: 5, enabled: true, motion: "", warn_seconds: 0, key: "light_scale",
+    entity: "light.scale", name: "Scale", minutes: 5, enabled: true, motions: [], warn_seconds: 0, key: "light_scale",
     status: "spenta", end: null, remaining: null,
     entities: { stato: "sensor.t_stato", scadenza: "sensor.t_scad", durata: "number.t_durata", attivo: "switch.t_attivo" }, ...over,
   };
@@ -87,8 +87,9 @@ test("controlli delle luci", () => {
   assert.match(lightError(ok, [ok, ok])!, /già nell'elenco/);
   assert.match(lightError({ ...ok, minutes: 0 }, [ok])!, /durata/);
   assert.match(lightError({ ...ok, minutes: 721 }, [ok])!, /durata/);
-  assert.match(lightError({ ...ok, motion: "sensor.x" }, [ok])!, /movimento/);
-  assert.equal(lightError({ ...ok, motion: "binary_sensor.pir" }, [ok]), null);
+  assert.match(lightError({ ...ok, motions: ["sensor.x"] }, [ok])!, /movimento/);
+  assert.equal(lightError({ ...ok, motions: ["binary_sensor.pir", "binary_sensor.porta"] }, [ok]), null);
+  assert.match(lightError({ ...ok, motions: Array.from({ length: 7 }, (_, i) => `binary_sensor.s${i}`) }, [ok])!, /Al massimo 6/);
   assert.match(lightsError([{ ...ok, name: "Scale", minutes: 0 }])!, /^Scale:/);
   assert.equal(lightsError([]), null);
   assert.equal(newLight("light.luce_garage").name, "Luce garage");
@@ -104,10 +105,14 @@ test("elenchi di entità", () => {
     "sensor.x": st("sensor.x", "1"),
     "switch.c": st("switch.c", "on"),
     "binary_sensor.pir": st("binary_sensor.pir", "off", { device_class: "motion", friendly_name: "PIR scale" }),
-    "binary_sensor.porta": st("binary_sensor.porta", "off", { device_class: "door" }),
+    "binary_sensor.porta": st("binary_sensor.porta", "off", { device_class: "door", friendly_name: "Porta" }),
+    "binary_sensor.batteria": st("binary_sensor.batteria", "off", { device_class: "battery" }),
   };
   assert.deepEqual(addableEntities(states, ["switch.c"]).map((e) => e.id), ["light.a", "light.b"]);
-  assert.deepEqual(motionEntities(states).map((e) => e.id), ["binary_sensor.pir"]);
+  assert.deepEqual(motionEntities(states).map((e) => e.id), ["binary_sensor.pir", "binary_sensor.porta"]);
+  assert.deepEqual(motionEntities(states, ["binary_sensor.pir"]).map((e) => e.id), ["binary_sensor.porta"]);
+  assert.equal(friendlyName(states, "binary_sensor.pir"), "PIR scale");
+  assert.equal(friendlyName(states, "binary_sensor.boh"), "binary_sensor.boh");
 });
 
 test("statsLine", () => {

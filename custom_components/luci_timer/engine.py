@@ -27,7 +27,7 @@ class LightConfig:
     name: str
     minutes: int = 5
     enabled: bool = True
-    motion: str = ""          # binary_sensor che rinnova il timer finché c'è movimento (vuoto = nessuno)
+    motions: tuple[str, ...] = ()   # sensori (binary_sensor) che rinnovano il timer finché uno di loro è attivo
     warn_seconds: int = 0     # lampeggio di avviso prima dello spegnimento, solo per le luci (0 = nessuno)
 
     @property
@@ -41,7 +41,7 @@ class LightConfig:
     def to_dict(self) -> dict[str, Any]:
         return {
             "entity": self.entity, "name": self.name, "minutes": self.minutes, "enabled": self.enabled,
-            "motion": self.motion, "warn_seconds": self.warn_seconds,
+            "motions": list(self.motions), "warn_seconds": self.warn_seconds,
         }
 
     @staticmethod
@@ -55,17 +55,31 @@ class LightConfig:
         name = str(raw.get("name") or "").strip() or m.group(2).replace("_", " ").capitalize()
         minutes = _int(raw.get("minutes"), 5)
         warn = _int(raw.get("warn_seconds"), 0)
-        motion = str(raw.get("motion") or "").strip()
-        if motion and not motion.startswith(("binary_sensor.", "input_boolean.")):
-            motion = ""
+        motions = _parse_motions(raw.get("motions"), raw.get("motion"))
         return LightConfig(
             entity=entity,
             name=name[:60],
             minutes=min(MAX_MINUTES, max(MIN_MINUTES, minutes)),
             enabled=raw.get("enabled") is not False,
-            motion=motion,
+            motions=motions,
             warn_seconds=min(MAX_WARN, max(0, warn)) if m.group(1) == "light" else 0,
         )
+
+
+MAX_MOTIONS = 6
+
+
+def _parse_motions(many: Any, legacy: Any) -> tuple[str, ...]:
+    """Sensori di movimento validi e senza doppioni; accetta anche il vecchio campo singolo `motion`."""
+    raw: list[Any] = list(many) if isinstance(many, (list, tuple)) else []
+    if legacy:
+        raw.append(legacy)
+    out: list[str] = []
+    for item in raw:
+        s = str(item or "").strip()
+        if _ENTITY.match(s) and s.split(".", 1)[0] in ("binary_sensor", "input_boolean") and s not in out:
+            out.append(s)
+    return tuple(out[:MAX_MOTIONS])
 
 
 def _int(v: Any, default: int) -> int:
@@ -134,6 +148,7 @@ class LightTimer:
     expected_off: bool = False        # lo spegnimento in arrivo lo ha chiesto il timer
     last_expired: datetime | None = None
     saved: dict[str, Any] | None = None   # timer salvato prima del riavvio, da ripristinare al primo stato noto
+    pending: tuple[datetime, int] | None = None   # durata una tantum chiesta prima che la luce si accenda: (valida fino a, minuti)
 
     # ------------------------------------------------------------------ stato
     def status(self, master: bool) -> str:
@@ -180,7 +195,13 @@ class LightTimer:
         self.warned = False
         self.extended = 0
         self.expected_off = False
-        self.end = now + timedelta(minutes=self.cfg.minutes) if self.active(master) else None
+        minutes = self.cfg.minutes
+        if self.pending is not None:
+            until, wanted = self.pending
+            self.pending = None
+            if now <= until:
+                minutes = wanted
+        self.end = now + timedelta(minutes=minutes) if self.active(master) else None
 
     def _finish(self, now: datetime) -> Cycle | None:
         cycle = None
@@ -209,7 +230,7 @@ class LightTimer:
         if not self.active(master):
             return None
         if now >= self.end:
-            if motion and self.cfg.motion:
+            if motion and self.cfg.motions:
                 self.end = now + timedelta(minutes=self.cfg.minutes)
                 self.warned = False
                 self.extended += 1
@@ -234,6 +255,18 @@ class LightTimer:
         self.expected_off = False
         self.extended += 1
         return True
+
+    def start_for(self, now: datetime, minutes: int) -> bool:
+        """Per questo ciclo il timer dura `minutes` da adesso. Se la luce è spenta vale per la prossima accensione (entro 30 s)."""
+        minutes = min(MAX_MINUTES, max(MIN_MINUTES, minutes))
+        if self.on is True:
+            self.held = False
+            self.end = now + timedelta(minutes=minutes)
+            self.warned = False
+            self.expected_off = False
+            return True
+        self.pending = (now + timedelta(seconds=30), minutes)
+        return False
 
     def hold(self) -> bool:
         """Tieni accesa: niente scadenza finché la luce non viene spenta."""
