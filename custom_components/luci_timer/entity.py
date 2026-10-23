@@ -33,10 +33,15 @@ def general_device(controller: LuciController) -> DeviceInfo:
 
 
 def light_device(controller: LuciController, timer: LightTimer) -> DeviceInfo:
-    return DeviceInfo(
+    info = DeviceInfo(
         identifiers={(DOMAIN, f"{controller.entry.entry_id}_{timer.cfg.key}")},
         name=f"Timer {timer.cfg.name}",
         manufacturer="Timer luci",
         model="Timer di una luce",
-        via_device=(DOMAIN, controller.entry.entry_id),
     )
+    # le versioni recenti di Home Assistant vogliono l'id del dispositivo padre (via_device è in dismissione)
+    if "via_device_id" in DeviceInfo.__annotations__ and controller.general_device_id:
+        info["via_device_id"] = controller.general_device_id  # type: ignore[typeddict-unknown-key]
+    else:
+        info["via_device"] = (DOMAIN, controller.entry.entry_id)
+    return info

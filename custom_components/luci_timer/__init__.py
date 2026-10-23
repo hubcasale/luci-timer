@@ -54,6 +54,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     controller = LuciController(hass, entry)
     hass.data[DOMAIN][entry.entry_id] = controller
     await controller.async_start()
+    general = dr.async_get(hass).async_get_or_create(
+        config_entry_id=entry.entry_id, identifiers={(DOMAIN, entry.entry_id)}, name=entry.title, manufacturer="Timer luci", model="Riepilogo"
+    )
+    controller.general_device_id = general.id
     _prune_registry(hass, entry, controller)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))

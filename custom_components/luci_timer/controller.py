@@ -39,6 +39,7 @@ class LuciController:
         self._unsubs: list = []
         self._last_save = dt_util.utcnow()
         self.signature = signature(parse_lights(entry.options.get(CONF_LIGHTS)))
+        self.general_device_id: str | None = None
 
     @property
     def signal(self) -> str:
