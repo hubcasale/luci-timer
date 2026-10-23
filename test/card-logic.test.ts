@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  friendlyName, addableEntities, asStatus, clampMinutes, countdown, fmtMinutes, lightError, lightsError, motionEntities, newLight, statsLine, summaryText, tileModel,
+  filterTiles, friendlyName, addableEntities, asStatus, clampMinutes, countdown, fmtMinutes, lightError, lightsError, motionEntities, newLight, statsLine, summaryText, tileModel,
 } from "../src/card-logic";
 import type { HassEntity, LightInfo } from "../src/types";
 
@@ -121,4 +121,12 @@ test("statsLine", () => {
     statsLine({ days: 30, runs: 10, expired: 7, manual: 3, reon: 0, avg_minutes: 4.2, manual_median_minutes: 2, advice: null, suggested_minutes: null }),
     "10 accensioni · 7 spente dal timer · 3 a mano · durata media 4,2 min",
   );
+});
+
+test("filterTiles: solo le accese", () => {
+  const mk = (key: string, on: boolean) => ({ key, entity: key, name: key, on, tone: "off" as const, subtitle: "", progress: null, running: false, held: false, timerOn: true, minutes: 5 });
+  const tiles = [mk("a", true), mk("b", false), mk("c", true)];
+  assert.deepEqual(filterTiles(tiles, true).map((t) => t.key), ["a", "c"]);
+  assert.equal(filterTiles(tiles, false).length, 3);
+  assert.deepEqual(filterTiles([mk("x", false)], true), []);
 });

@@ -24,7 +24,10 @@ type: custom:luci-timer-card
 title: Timer luci
 lights: [light.luce_scale, light.luce_ingresso]   # mostra solo queste luci
 header: false                                     # solo le tessere, senza titolo e pulsanti
+only_on: true                                     # all'inizio solo le tessere delle luci accese
 ```
+
+Con `only_on: true` la scheda mostra solo le luci accese (se non ce n'è nessuna, "Nessuna luce accesa"); il pulsante **Solo accese / Tutte** in alto permette di cambiare vista.
 
 Con `lights` e `header: false` la scheda si può inserire dentro altre schede (per esempio accanto al pulsante di una luce) come tessera compatta con il conto alla rovescia.
 

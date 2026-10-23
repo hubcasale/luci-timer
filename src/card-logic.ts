@@ -88,6 +88,11 @@ export function tileModel(light: LightInfo, states: Record<string, HassEntity>, 
   };
 }
 
+/** Con "solo accese" restano le tessere delle luci accese (anche con il timer fermo o tenute accese). */
+export function filterTiles(tiles: TileModel[], onlyOn: boolean): TileModel[] {
+  return onlyOn ? tiles.filter((t) => t.on) : tiles;
+}
+
 export function summaryText(tiles: TileModel[], master: boolean): string {
   if (tiles.length === 0) return "Nessuna luce: aggiungine una con l'ingranaggio.";
   const on = tiles.filter((t) => t.on).length;
