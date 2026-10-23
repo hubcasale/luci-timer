@@ -22,7 +22,11 @@ Aggiungi alla dashboard una scheda manuale:
 type: custom:luci-timer-card
 # facoltativi
 title: Timer luci
+lights: [light.luce_scale, light.luce_ingresso]   # mostra solo queste luci
+header: false                                     # solo le tessere, senza titolo e pulsanti
 ```
+
+Con `lights` e `header: false` la scheda si può inserire dentro altre schede (per esempio accanto al pulsante di una luce) come tessera compatta con il conto alla rovescia.
 
 Il file della scheda lo serve l'integrazione. Dopo ogni aggiornamento ricarica la pagina senza cache (nel tablet con Fully Kiosk: svuota la cache).
 

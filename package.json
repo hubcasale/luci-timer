@@ -1,6 +1,6 @@
 {
   "name": "luci-timer",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Scheda Lovelace dei timer delle luci, servita dall'integrazione luci_timer.",
   "license": "MIT",
   "author": "Corrado Gamberoni",

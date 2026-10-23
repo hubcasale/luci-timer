@@ -9,6 +9,10 @@ interface CardConfig {
   type: string;
   title?: string;
   entry_id?: string;
+  /** mostra solo queste luci (entity_id); senza l'elenco si vedono tutte */
+  lights?: string[];
+  /** false = solo le tessere, senza titolo e pulsanti (per inserire una luce dentro un'altra scheda) */
+  header?: boolean;
 }
 
 /** Scheda dei timer luci: una tessera per luce con conto alla rovescia e pulsanti grandi, pensata per il tablet (tocco). */
@@ -136,9 +140,14 @@ export class LuciTimerCard extends LitElement {
     if (!this._info) return html`<ha-card><div class="pad"><div class="title">${title}</div><div class="muted">Carico…</div></div></ha-card>`;
 
     const master = this.hass.states[this._info.entities.generale ?? ""]?.state !== "off";
-    const tiles = this._info.lights.map((l) => tileModel(l, this.hass.states, this._now));
+    const wanted = Array.isArray(this._config.lights) ? this._config.lights : null;
+    const shown = wanted ? this._info.lights.filter((l) => wanted.includes(l.entity)) : this._info.lights;
+    const tiles = shown.map((l) => tileModel(l, this.hass.states, this._now));
     // prima le luci accese, quelle con il timer più vicino in cima
     const order = [...tiles].sort((a, b) => Number(b.on) - Number(a.on));
+    if (this._config.header === false) {
+      return html`<ha-card><div class="pad compact"><div class="grid">${order.map((t) => this._tile(t))}</div></div></ha-card>`;
+    }
     return html`
       <ha-card>
         <div class="pad">
@@ -164,6 +173,7 @@ export class LuciTimerCard extends LitElement {
     :host { display: block; color: var(--primary-text-color, #212121); }
     ha-card { overflow: hidden; }
     .pad { padding: 14px 16px 16px; }
+    .pad.compact { padding: 8px; }
     .head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
     .title { font-size: 1.15rem; font-weight: 600; }
     .sum { font-size: 0.85rem; color: var(--secondary-text-color, #727272); margin-top: 2px; }
@@ -174,7 +184,7 @@ export class LuciTimerCard extends LitElement {
     .mst.on { background: rgba(22, 163, 74, 0.16); border-color: #16a34a; color: #166534; }
     .ib { width: 44px; height: 44px; border-radius: 22px; border: 1px solid var(--divider-color, #ccc); background: var(--secondary-background-color, #f4f4f4); color: inherit; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
     ha-icon { --mdc-icon-size: 22px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(230px, 100%), 1fr)); gap: 10px; }
     .tile { padding: 10px 12px; border-radius: 14px; background: var(--secondary-background-color, #f2f2f2); border: 1px solid transparent; }
     .tile.running { border-color: rgba(245, 158, 11, 0.7); background: rgba(245, 158, 11, 0.12); }
     .tile.held { border-color: rgba(96, 165, 250, 0.8); background: rgba(96, 165, 250, 0.13); }
@@ -210,4 +220,4 @@ window.customCards.push({
 });
 
 // eslint-disable-next-line no-console
-console.info("%c LUCI-TIMER %c v0.2.0 ", "color: white; background: #b45309; font-weight: 700;", "color: #b45309; background: white; font-weight: 700;");
+console.info("%c LUCI-TIMER %c v0.3.0 ", "color: white; background: #b45309; font-weight: 700;", "color: #b45309; background: white; font-weight: 700;");
