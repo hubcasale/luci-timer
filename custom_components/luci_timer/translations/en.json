@@ -1,0 +1,82 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Light timers",
+        "description": "Creates the light timers manager. Add lights from the card (gear icon)."
+      }
+    },
+    "abort": {
+      "already_configured": "Light timers is already configured."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "stato": {
+        "name": "Status",
+        "state": {
+          "non_disponibile": "Unavailable",
+          "spenta": "Off",
+          "in_corso": "Timer running",
+          "tenuta": "Held on",
+          "timer_disattivato": "Timer disabled"
+        }
+      },
+      "scadenza": {
+        "name": "Expiry"
+      },
+      "in_corso": {
+        "name": "Timers running"
+      }
+    },
+    "number": {
+      "durata": {
+        "name": "Duration"
+      }
+    },
+    "switch": {
+      "attivo": {
+        "name": "Timer enabled"
+      },
+      "generale": {
+        "name": "Light timers enabled"
+      }
+    }
+  },
+  "services": {
+    "extend": {
+      "name": "Extend",
+      "description": "Extend the timer of a light that is on.",
+      "fields": {
+        "entity_id": {
+          "name": "Lights",
+          "description": "Lights or switches to extend."
+        },
+        "minutes": {
+          "name": "Minutes",
+          "description": "How much to extend."
+        }
+      }
+    },
+    "hold": {
+      "name": "Hold on",
+      "description": "Stops the timer until the light is turned off.",
+      "fields": {
+        "entity_id": {
+          "name": "Lights",
+          "description": "Lights or switches to hold on."
+        }
+      }
+    },
+    "release": {
+      "name": "Resume timer",
+      "description": "Restarts the normal timer after a hold.",
+      "fields": {
+        "entity_id": {
+          "name": "Lights",
+          "description": "Lights or switches."
+        }
+      }
+    }
+  }
+}

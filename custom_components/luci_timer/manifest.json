@@ -1,0 +1,22 @@
+{
+  "domain": "luci_timer",
+  "name": "Timer luci",
+  "after_dependencies": [
+    "recorder"
+  ],
+  "codeowners": [
+    "@hubcasale"
+  ],
+  "config_flow": true,
+  "dependencies": [
+    "http",
+    "frontend",
+    "websocket_api"
+  ],
+  "documentation": "https://github.com/hubcasale/luci-timer",
+  "integration_type": "service",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/hubcasale/luci-timer/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

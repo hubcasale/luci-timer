@@ -1,0 +1,82 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Timer luci",
+        "description": "Crea il gestore dei timer delle luci. Le luci si aggiungono dalla scheda (ingranaggio)."
+      }
+    },
+    "abort": {
+      "already_configured": "Timer luci è già configurato."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "stato": {
+        "name": "Stato",
+        "state": {
+          "non_disponibile": "Non disponibile",
+          "spenta": "Spenta",
+          "in_corso": "Timer in corso",
+          "tenuta": "Tenuta accesa",
+          "timer_disattivato": "Timer disattivato"
+        }
+      },
+      "scadenza": {
+        "name": "Scadenza"
+      },
+      "in_corso": {
+        "name": "Timer in corso"
+      }
+    },
+    "number": {
+      "durata": {
+        "name": "Durata"
+      }
+    },
+    "switch": {
+      "attivo": {
+        "name": "Timer attivo"
+      },
+      "generale": {
+        "name": "Timer luci attivi"
+      }
+    }
+  },
+  "services": {
+    "extend": {
+      "name": "Prolunga",
+      "description": "Prolunga il timer di una luce accesa.",
+      "fields": {
+        "entity_id": {
+          "name": "Luci",
+          "description": "Le luci o prese da prolungare."
+        },
+        "minutes": {
+          "name": "Minuti",
+          "description": "Di quanto prolungare."
+        }
+      }
+    },
+    "hold": {
+      "name": "Tieni accesa",
+      "description": "Ferma il timer finché la luce non viene spenta.",
+      "fields": {
+        "entity_id": {
+          "name": "Luci",
+          "description": "Le luci o prese da tenere accese."
+        }
+      }
+    },
+    "release": {
+      "name": "Riprendi il timer",
+      "description": "Fa ripartire il timer normale dopo un Tieni accesa.",
+      "fields": {
+        "entity_id": {
+          "name": "Luci",
+          "description": "Le luci o prese."
+        }
+      }
+    }
+  }
+}

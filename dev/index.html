@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root { --card-background-color:#fff; --primary-text-color:#212121; --secondary-text-color:#727272; --divider-color:#e0e0e0; --secondary-background-color:#f2f2f2; --primary-color:#03a9f4; }
+  body.dark { --card-background-color:#1c1c1c; --primary-text-color:#e1e1e1; --secondary-text-color:#9b9b9b; --divider-color:#3a3a3a; --secondary-background-color:#2a2a2a; background:#111; }
+  body { margin:0; padding:16px; background:#e9ecef; font-family:Roboto,Helvetica,Arial,sans-serif; }
+  .wrap { max-width:780px; margin:0 auto; }
+  ha-card { display:block; background:var(--card-background-color); border-radius:12px; box-shadow:0 1px 4px rgba(0,0,0,.15); color:var(--primary-text-color); }
+  ha-icon { display:inline-block; width:1em; height:1em; }
+</style></head>
+<body><div class="wrap" id="root"></div>
+<script>customElements.define('ha-icon', class extends HTMLElement{connectedCallback(){this.textContent='\u25CF'; this.style.fontSize='14px'}});</script>
+<script src="bundle.js"></script>
+<script>
+const params = new URLSearchParams(location.search);
+if (params.get("theme") === "dark") document.body.classList.add("dark");
+const now = Date.now();
+const defs = [
+  ["light.luce_scale","Luce scale",5,"in_corso",150],
+  ["light.luce_ingresso","Luce ingresso",5,"in_corso",45],
+  ["light.disimpegno_garage_l1","Disimpegno gatti",15,"tenuta",null],
+  ["light.luce_garage","Luce garage",20,"spenta",null],
+  ["switch.macchina_caffe","Macchina caffè",10,"in_corso",420],
+  ["light.faro_parcheggio","Faro parcheggio",10,"spenta",null],
+  ["light.disimpegno_garage_l2","Disimpegno garage",10,"timer_disattivato",null],
+  ["light.luci_parcheggio_l1","Cuccia Lucky",5,"non_disponibile",null],
+];
+const states = {}; const lights = [];
+defs.forEach(([e, name, min, st, left]) => {
+  const key = e.replace(".", "_"); const ent = { stato:"sensor.t_"+key+"_stato", scadenza:"sensor.t_"+key+"_scad", durata:"number.t_"+key, attivo:"switch.t_"+key };
+  const on = ["in_corso","tenuta","timer_disattivato"].includes(st);
+  states[e] = { entity_id:e, state: st==="non_disponibile"?"unavailable":(on?"on":"off"), attributes:{friendly_name:name} };
+  states[ent.stato] = { entity_id:ent.stato, state:st, attributes:{} };
+  states[ent.scadenza] = { entity_id:ent.scadenza, state: left!==null? new Date(now+left*1000).toISOString():"unknown", attributes:{} };
+  states[ent.durata] = { entity_id:ent.durata, state:String(min), attributes:{} };
+  states[ent.attivo] = { entity_id:ent.attivo, state: st==="timer_disattivato"?"off":"on", attributes:{} };
+  lights.push({ entity:e, name, minutes:min, enabled: st!=="timer_disattivato", motion: e==="light.luce_scale"?"binary_sensor.pir_scale":"", warn_seconds: e==="light.luce_scale"?20:0, key, status:st, end:null, remaining:null, entities:ent });
+});
+states["binary_sensor.pir_scale"] = { entity_id:"binary_sensor.pir_scale", state:"off", attributes:{device_class:"motion", friendly_name:"PIR scale"} };
+states["switch.t_master"] = { entity_id:"switch.t_master", state:"on", attributes:{} };
+states["light.cucina"] = { entity_id:"light.cucina", state:"off", attributes:{friendly_name:"Cucina"} };
+const info = { entry_id:"e1", title:"Timer luci", enabled:true, lights, entities:{ generale:"switch.t_master", in_corso:"sensor.t_run" } };
+const hass = { states, callService: async()=>{}, callWS: async (m) => {
+  if (m.type==="luci_timer/info") return info;
+  if (m.type==="luci_timer/update") return {enabled:m.enabled, lights:m.lights};
+  if (m.type==="luci_timer/action") return {ok:true};
+  if (m.type==="luci_timer/stats") { const out={}; lights.forEach((l,i)=>{ out[l.key] = [
+    {days:30,runs:320,expired:252,manual:68,reon:0,avg_minutes:4.2,manual_median_minutes:3,advice:"Il timer funziona: la luce si spegne da sola quasi sempre.",suggested_minutes:null},
+    {days:30,runs:290,expired:30,manual:260,reon:0,avg_minutes:6.1,manual_median_minutes:3,advice:"La spegni quasi sempre a mano dopo circa 3 min: il timer è solo una sicurezza.",suggested_minutes:null},
+    {days:30,runs:94,expired:70,manual:24,reon:30,avg_minutes:4.2,manual_median_minutes:2,advice:"Spesso la riaccendi subito dopo la scadenza: prova 8 minuti.",suggested_minutes:8}][i%3]; }); return out; }
+  throw new Error("non gestito "+m.type); } };
+const el = document.createElement("luci-timer-card"); el.setConfig({type:"custom:luci-timer-card"}); el.hass = hass;
+document.getElementById("root").appendChild(el);
+const op = params.get("open"); if (op) setTimeout(()=>el._open(op, params.get("key")||""), 600);
+</script></body></html>

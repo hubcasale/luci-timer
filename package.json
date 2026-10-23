@@ -1,0 +1,16 @@
+{
+  "name": "luci-timer",
+  "version": "0.1.0",
+  "description": "Scheda Lovelace dei timer delle luci, servita dall'integrazione luci_timer.",
+  "license": "MIT",
+  "author": "Corrado Gamberoni",
+  "repository": {"type": "git", "url": "https://github.com/hubcasale/luci-timer"},
+  "scripts": {
+    "build": "esbuild src/luci-timer-card.ts --bundle --format=esm --minify --outfile=custom_components/luci_timer/frontend/luci-timer-card.js",
+    "build:dev": "esbuild src/luci-timer-card.ts --bundle --format=iife --outfile=dev/bundle.js",
+    "typecheck": "tsc --noEmit",
+    "test": "esbuild test/*.test.ts --bundle --platform=node --format=cjs --outdir=.test-build --log-level=warning && node --test .test-build/"
+  },
+  "devDependencies": {"esbuild": "^0.24.0", "typescript": "^5.6.0"},
+  "dependencies": {"lit": "^3.2.0"}
+}
