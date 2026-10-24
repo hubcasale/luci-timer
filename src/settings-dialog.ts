@@ -86,6 +86,7 @@ export class LuciSettingsDialog extends LitElement {
     const isLight = entityDomain(l.entity) === "light";
     return html`
       <div class="ed">
+        <div class="link"><ha-icon icon="mdi:link-variant"></ha-icon>Collegata a <b>${friendlyName(this.hass.states, l.entity)}</b> <code>${l.entity}</code> · ora ${this.hass.states[l.entity]?.state === "on" ? "accesa" : this.hass.states[l.entity]?.state === "off" ? "spenta" : "non disponibile"}</div>
         <label class="f">Nome<input class="txt" .value=${l.name} @change=${(e: Event) => this._patch(l.entity, { name: (e.target as HTMLInputElement).value.trim() || l.name })} /></label>
         <div class="f">Durata del timer
           <div class="chips">
@@ -146,7 +147,7 @@ export class LuciSettingsDialog extends LitElement {
               (l) => html`
                 <div class="item">
                   <button class="head2" aria-expanded=${this._open === l.entity ? "true" : "false"} @click=${() => (this._open = this._open === l.entity ? "" : l.entity)}>
-                    <span class="nm">${l.name}</span>
+                    <span class="nm">${l.name}<span class="eid">${l.entity}</span></span>
                     <span class="meta">${l.enabled ? fmtMinutes(l.minutes) : "timer spento"}${l.motions.length ? ` · ${l.motions.length} ${l.motions.length === 1 ? "sensore" : "sensori"}` : ""}</span>
                     <span class="chev">${this._open === l.entity ? "▾" : "▸"}</span>
                   </button>
@@ -185,7 +186,11 @@ export class LuciSettingsDialog extends LitElement {
       .sw.on .knob { transform: translateX(22px); }
       .item { border: 1px solid var(--divider-color, #ddd); border-radius: 12px; margin-bottom: 8px; overflow: hidden; }
       .head2 { width: 100%; display: flex; align-items: center; gap: 10px; padding: 12px 14px; min-height: 48px; background: transparent; border: 0; color: inherit; cursor: pointer; text-align: left; font-size: 0.95rem; }
-      .nm { flex: 1; font-weight: 500; } .meta { color: var(--secondary-text-color, #727272); font-size: 0.85rem; } .chev { color: var(--secondary-text-color, #727272); }
+      .nm { flex: 1; font-weight: 500; display: flex; flex-direction: column; min-width: 0; }
+      .eid { font-weight: 400; font-size: 0.75rem; color: var(--secondary-text-color, #727272); overflow: hidden; text-overflow: ellipsis; }
+      .link { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: var(--secondary-background-color, #f2f2f2); font-size: 0.85rem; }
+      .link ha-icon { --mdc-icon-size: 18px; }
+      .link code { font-size: 0.78rem; color: var(--secondary-text-color, #727272); } .meta { color: var(--secondary-text-color, #727272); font-size: 0.85rem; } .chev { color: var(--secondary-text-color, #727272); }
       .ed { padding: 4px 14px 14px; border-top: 1px solid var(--divider-color, #eee); }
       .f { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; font-size: 0.85rem; color: var(--secondary-text-color, #727272); }
       .txt { box-sizing: border-box; width: 100%; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--divider-color, #ccc); background: var(--card-background-color, #fff); color: var(--primary-text-color, #212121); font-size: 0.95rem; min-height: 44px; }
