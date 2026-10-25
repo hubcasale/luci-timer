@@ -1,7 +1,8 @@
 import { LitElement, html, css, nothing } from "lit";
 import { property, state } from "lit/decorators.js";
-import { filterTiles, summaryText, tileModel, type TileModel } from "./card-logic";
+import { filterTiles, summaryText, tileModel, timerButton, type TileModel } from "./card-logic";
 import "./settings-dialog";
+import "./light-dialog";
 import "./stats-dialog";
 import type { HomeAssistant, LuciInfo } from "./types";
 
@@ -13,8 +14,10 @@ interface CardConfig {
   lights?: string[];
   /** true = all'inizio si vedono solo le tessere delle luci accese (con il pulsante in alto si passa a tutte) */
   only_on?: boolean;
-  /** false = solo le tessere, senza titolo e pulsanti (per inserire una luce dentro un'altra scheda) */
+  /** false = senza titolo e pulsanti (per inserire una luce dentro un'altra scheda) */
   header?: boolean;
+  /** con header: false: "button" (predefinito) = piccolo pulsante del timer, solo a luce accesa, che apre un popup; "tile" = tessera compatta */
+  display?: "button" | "tile";
 }
 
 /** Scheda dei timer luci: una tessera per luce con conto alla rovescia e pulsanti grandi, pensata per il tablet (tocco). */
@@ -37,7 +40,16 @@ export class LuciTimerCard extends LitElement {
     this._loadedAt = 0;
   }
   getCardSize(): number {
-    return 6;
+    return this._buttonMode() ? 1 : 6;
+  }
+
+  /** Dimensioni predefinite nelle dashboard a sezioni: il pulsante è piccolo. */
+  getGridOptions(): Record<string, number> {
+    return this._buttonMode() ? { columns: 3, rows: 1, min_columns: 1, min_rows: 1 } : { columns: 12, min_columns: 4 };
+  }
+
+  private _buttonMode(): boolean {
+    return this._config.header === false && (this._config.display ?? "button") === "button";
   }
   static getStubConfig(): CardConfig {
     return { type: "custom:luci-timer-card" };
@@ -75,7 +87,7 @@ export class LuciTimerCard extends LitElement {
     }
   }
 
-  private async _open(tag: "luci-settings-dialog" | "luci-stats-dialog", openKey = ""): Promise<void> {
+  private async _open(tag: "luci-settings-dialog" | "luci-stats-dialog" | "luci-light-dialog", openKey = ""): Promise<void> {
     if (!this._info) return;
     while (this._loading) await new Promise((r) => setTimeout(r, 50));
     await this._loadInfo();
@@ -84,6 +96,7 @@ export class LuciTimerCard extends LitElement {
     el.hass = this.hass;
     el.info = this._info;
     if (openKey) el.openKey = openKey;
+    el.addEventListener("settings", (e) => void this._open("luci-settings-dialog", String((e as CustomEvent).detail ?? "")));
     el.addEventListener("saved", () => {
       this._loadedAt = 0;
       void this._loadInfo();
@@ -149,6 +162,15 @@ export class LuciTimerCard extends LitElement {
     const tiles = shown.map((l) => tileModel(l, this.hass.states, this._now));
     // prima le luci accese, quelle con il timer più vicino in cima
     const order = filterTiles([...tiles].sort((a, b) => Number(b.on) - Number(a.on)), this._onlyOn && this._config.header !== false);
+    if (this._buttonMode()) {
+      const lit = tiles.filter((t) => t.on);
+      if (lit.length === 0) return nothing;
+      return html`<div class="btns">${lit.map((t) => {
+        const b = timerButton(t);
+        return html`<button class="tbtn ${t.tone}" aria-label=${b.label} @click=${() => void this._open("luci-light-dialog", t.entity)}>
+          <ha-icon icon=${b.icon}></ha-icon>${lit.length > 1 ? html`<span>${t.name}</span>` : nothing}</button>`;
+      })}</div>`;
+    }
     if (this._config.header === false) {
       return html`<ha-card><div class="pad compact"><div class="grid">${order.map((t) => this._tile(t))}</div></div></ha-card>`;
     }
@@ -179,6 +201,13 @@ export class LuciTimerCard extends LitElement {
 
   static styles = css`
     :host { display: block; color: var(--primary-text-color, #212121); }
+    .btns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 2px; }
+    .tbtn { display: inline-flex; align-items: center; gap: 6px; min-width: 48px; min-height: 48px; padding: 0 12px; justify-content: center; border-radius: 24px; border: 1px solid rgba(245, 158, 11, 0.7); background: rgba(245, 158, 11, 0.16); color: var(--primary-text-color, #212121); font-size: 0.85rem; cursor: pointer; }
+    .tbtn ha-icon { --mdc-icon-size: 26px; color: #f59e0b; }
+    .tbtn.held { border-color: rgba(96, 165, 250, 0.8); background: rgba(96, 165, 250, 0.16); }
+    .tbtn.held ha-icon { color: #60a5fa; }
+    .tbtn.idle { border-color: rgba(127, 127, 127, 0.5); background: rgba(127, 127, 127, 0.14); }
+    .tbtn.idle ha-icon { color: var(--secondary-text-color, #727272); }
     ha-card { overflow: hidden; }
     .pad { padding: 14px 16px 16px; }
     .pad.compact { padding: 8px; }
@@ -229,4 +258,4 @@ window.customCards.push({
 });
 
 // eslint-disable-next-line no-console
-console.info("%c LUCI-TIMER %c v0.4.1 ", "color: white; background: #b45309; font-weight: 700;", "color: #b45309; background: white; font-weight: 700;");
+console.info("%c LUCI-TIMER %c v0.5.0 ", "color: white; background: #b45309; font-weight: 700;", "color: #b45309; background: white; font-weight: 700;");

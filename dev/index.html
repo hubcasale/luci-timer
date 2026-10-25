@@ -50,7 +50,7 @@ const hass = { states, callService: async()=>{}, callWS: async (m) => {
     {days:30,runs:290,expired:30,manual:260,reon:0,avg_minutes:6.1,manual_median_minutes:3,advice:"La spegni quasi sempre a mano dopo circa 3 min: il timer è solo una sicurezza.",suggested_minutes:null},
     {days:30,runs:94,expired:70,manual:24,reon:30,avg_minutes:4.2,manual_median_minutes:2,advice:"Spesso la riaccendi subito dopo la scadenza: prova 8 minuti.",suggested_minutes:8}][i%3]; }); return out; }
   throw new Error("non gestito "+m.type); } };
-const el = document.createElement("luci-timer-card"); el.setConfig({type:"custom:luci-timer-card", lights: params.get("lights") ? params.get("lights").split(",") : undefined, header: params.get("header")==="0" ? false : undefined, only_on: params.get("only_on")==="1" ? true : undefined}); el.hass = hass;
+const el = document.createElement("luci-timer-card"); el.setConfig({type:"custom:luci-timer-card", lights: params.get("lights") ? params.get("lights").split(",") : undefined, header: params.get("header")==="0" ? false : undefined, only_on: params.get("only_on")==="1" ? true : undefined, display: params.get("display")||undefined}); el.hass = hass;
 document.getElementById("root").appendChild(el);
 const op = params.get("open"); if (op) setTimeout(()=>el._open(op, params.get("key")||""), 600);
 </script></body></html>

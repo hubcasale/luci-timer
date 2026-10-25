@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  filterTiles, friendlyName, addableEntities, asStatus, clampMinutes, countdown, fmtMinutes, lightError, lightsError, motionEntities, newLight, statsLine, summaryText, tileModel,
+  timerButton, START_CHOICES, filterTiles, friendlyName, addableEntities, asStatus, clampMinutes, countdown, fmtMinutes, lightError, lightsError, motionEntities, newLight, statsLine, summaryText, tileModel,
 } from "../src/card-logic";
 import type { HassEntity, LightInfo } from "../src/types";
 
@@ -129,4 +129,13 @@ test("filterTiles: solo le accese", () => {
   assert.deepEqual(filterTiles(tiles, true).map((t) => t.key), ["a", "c"]);
   assert.equal(filterTiles(tiles, false).length, 3);
   assert.deepEqual(filterTiles([mk("x", false)], true), []);
+});
+
+test("timerButton: icona per ogni situazione", () => {
+  const mk = (over: object) => ({ key: "k", entity: "e", name: "Scale", on: true, tone: "running" as const, subtitle: "Spegne tra 02:30", progress: 0.5, running: true, held: false, timerOn: true, minutes: 5, ...over });
+  assert.equal(timerButton(mk({})).icon, "mdi:timer-outline");
+  assert.match(timerButton(mk({})).label, /spegne tra 02:30/);
+  assert.equal(timerButton(mk({ running: false, held: true })).icon, "mdi:timer-lock-outline");
+  assert.equal(timerButton(mk({ running: false })).icon, "mdi:timer-off-outline");
+  assert.ok(START_CHOICES.includes(15));
 });

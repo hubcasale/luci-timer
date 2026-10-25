@@ -23,13 +23,13 @@ type: custom:luci-timer-card
 # facoltativi
 title: Timer luci
 lights: [light.luce_scale, light.luce_ingresso]   # mostra solo queste luci
-header: false                                     # solo le tessere, senza titolo e pulsanti
+header: false                                     # piccolo pulsante del timer (solo a luce accesa) con popup
 only_on: true                                     # all'inizio solo le tessere delle luci accese
 ```
 
 Con `only_on: true` la scheda mostra solo le luci accese (se non ce n'è nessuna, "Nessuna luce accesa"); il pulsante **Solo accese / Tutte** in alto permette di cambiare vista.
 
-Con `lights` e `header: false` la scheda si può inserire dentro altre schede (per esempio accanto al pulsante di una luce) come tessera compatta con il conto alla rovescia.
+Con `lights` e `header: false` la scheda diventa un **piccolo pulsante con l'icona del timer**, visibile solo quando la luce è accesa (arancione con il timer in corso, azzurro se tenuta accesa, grigio se il timer è disattivato). Toccandolo si apre un popup con il conto alla rovescia grande, +5 / +15 minuti, Tieni accesa, Spegni ora, "Spegni tra…" e l'interruttore del timer. Con `display: tile` si ottiene invece la tessera compatta.
 
 Il file della scheda lo serve l'integrazione. Dopo ogni aggiornamento ricarica la pagina senza cache (nel tablet con Fully Kiosk: svuota la cache).
 

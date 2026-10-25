@@ -88,6 +88,15 @@ export function tileModel(light: LightInfo, states: Record<string, HassEntity>, 
   };
 }
 
+/** Icona e frase del piccolo pulsante del timer (compare solo a luce accesa). */
+export function timerButton(t: TileModel): { icon: string; label: string } {
+  if (t.held) return { icon: "mdi:timer-lock-outline", label: `${t.name}: tenuta accesa` };
+  if (t.running) return { icon: "mdi:timer-outline", label: `${t.name}: ${t.subtitle.toLowerCase()}` };
+  return { icon: "mdi:timer-off-outline", label: `${t.name}: timer disattivato` };
+}
+
+export const START_CHOICES = [5, 10, 15, 30, 60, 120];
+
 /** Con "solo accese" restano le tessere delle luci accese (anche con il timer fermo o tenute accese). */
 export function filterTiles(tiles: TileModel[], onlyOn: boolean): TileModel[] {
   return onlyOn ? tiles.filter((t) => t.on) : tiles;
