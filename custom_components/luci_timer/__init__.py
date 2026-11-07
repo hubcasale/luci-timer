@@ -23,7 +23,7 @@ from .engine import MAX_MINUTES, parse_lights
 
 _LOGGER = logging.getLogger(__name__)
 CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
-LIGHT_SUFFIXES = ("stato", "scadenza", "durata", "attivo")
+LIGHT_SUFFIXES = ("stato", "scadenza", "durata", "attivo", "tenuta")
 GENERAL_KEYS = ("in_corso", "generale")
 
 
@@ -133,7 +133,7 @@ def _entities_of(hass: HomeAssistant, entry: ConfigEntry, controller: LuciContro
     out: dict[str, dict[str, str]] = {}
     for key in controller.timers:
         ents: dict[str, str] = {}
-        for suffix, domain in (("stato", "sensor"), ("scadenza", "sensor"), ("durata", "number"), ("attivo", "switch")):
+        for suffix, domain in (("stato", "sensor"), ("scadenza", "sensor"), ("durata", "number"), ("attivo", "switch"), ("tenuta", "switch")):
             eid = reg.async_get_entity_id(domain, DOMAIN, f"{entry.entry_id}_{key}_{suffix}")
             if eid:
                 ents[suffix] = eid

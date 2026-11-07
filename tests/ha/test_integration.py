@@ -98,6 +98,11 @@ async def test_light_already_on_at_startup_gets_a_timer(hass: HomeAssistant) -> 
     assert hass.states.get(_eid(hass, entry, "sensor", SCALE, "stato")).state == "in_corso"
 
 
+def _future(tz: ZoneInfo) -> datetime:
+    """Un'ora tonda di due giorni dopo l'orologio vero: il tempo si sposta sempre in avanti, mai indietro."""
+    return (datetime.now(tz) + timedelta(days=2)).replace(hour=20, minute=0, second=0, microsecond=0)
+
+
 async def _tick(hass: HomeAssistant, freezer, when: datetime) -> None:
     freezer.move_to(when)
     async_fire_time_changed(hass, when)
@@ -109,7 +114,7 @@ async def test_expiry_turns_light_off_and_records_stats(hass: HomeAssistant, fre
     rome = ZoneInfo("Europe/Rome")
     calls = _record(hass)
     entry = await _setup(hass)
-    t0 = datetime(2026, 11, 2, 20, 0, tzinfo=rome)
+    t0 = _future(rome)
     freezer.move_to(t0)
     hass.states.async_set(SCALE, "on")
     await hass.async_block_till_done()
@@ -141,7 +146,7 @@ async def test_motion_renews_instead_of_turning_off(hass: HomeAssistant, freezer
     hass.states.async_set("binary_sensor.porta", "on")        # basta uno dei due sensori
     lights = [{"entity": SCALE, "name": "Luce scale", "minutes": 5, "motions": [PIR, "binary_sensor.porta"]}]
     await _setup(hass, lights)
-    t0 = datetime(2026, 11, 2, 20, 0, tzinfo=rome)
+    t0 = _future(rome)
     freezer.move_to(t0)
     hass.states.async_set(SCALE, "on")
     await hass.async_block_till_done()
@@ -161,7 +166,7 @@ async def test_warning_flash_does_not_cancel_the_timer(hass: HomeAssistant, free
     calls = _record(hass)
     lights = [{"entity": SCALE, "name": "Luce scale", "minutes": 5, "warn_seconds": 30}]
     entry = await _setup(hass, lights)
-    t0 = datetime(2026, 11, 2, 20, 0, tzinfo=rome)
+    t0 = _future(rome)
     freezer.move_to(t0)
     hass.states.async_set(SCALE, "on", {"brightness": 200})
     await hass.async_block_till_done()
@@ -306,3 +311,25 @@ async def test_legacy_motion_field_in_options(hass: HomeAssistant) -> None:
     lights = [{"entity": SCALE, "name": "Scale", "minutes": 5, "motion": PIR}]
     entry = await _setup(hass, lights)
     assert hass.data[DOMAIN][entry.entry_id].timers[SCALE.replace(".", "_")].cfg.motions == (PIR,)
+
+
+async def test_hold_switch_stops_the_timer_and_follows_the_light(hass: HomeAssistant) -> None:
+    calls = _record(hass)
+    entry = await _setup(hass)
+    hold = _eid(hass, entry, "switch", SCALE, "tenuta")
+    stato = _eid(hass, entry, "sensor", SCALE, "stato")
+    assert hass.states.get(hold).state == "off"
+    # luce spenta: accendere "tieni accesa" accende la luce e la tiene
+    await hass.services.async_call("switch", "turn_on", {"entity_id": hold}, blocking=True)
+    await hass.async_block_till_done()
+    assert ("turn_on", SCALE) in [(c[0], c[1]) for c in calls]
+    assert hass.states.get(stato).state == "tenuta" and hass.states.get(hold).state == "on"
+    # spento: riprende il timer
+    await hass.services.async_call("switch", "turn_off", {"entity_id": hold}, blocking=True)
+    await hass.async_block_till_done()
+    assert hass.states.get(stato).state == "in_corso" and hass.states.get(hold).state == "off"
+    # luce accesa e tenuta, poi spenta a mano: la tenuta finisce
+    await hass.services.async_call("switch", "turn_on", {"entity_id": hold}, blocking=True)
+    hass.states.async_set(SCALE, "off")
+    await hass.async_block_till_done()
+    assert hass.states.get(hold).state == "off"

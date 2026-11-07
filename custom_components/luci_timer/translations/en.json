@@ -40,6 +40,9 @@
       },
       "generale": {
         "name": "Light timers enabled"
+      },
+      "tenuta": {
+        "name": "Hold on"
       }
     }
   },

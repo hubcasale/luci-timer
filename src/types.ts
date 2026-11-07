@@ -27,7 +27,7 @@ export interface LightInfo extends LightCfg {
   status: Status;
   end: string | null;
   remaining: number | null;
-  entities: { stato?: string; scadenza?: string; durata?: string; attivo?: string };
+  entities: { stato?: string; scadenza?: string; durata?: string; attivo?: string; tenuta?: string };
 }
 
 export interface LuciInfo {

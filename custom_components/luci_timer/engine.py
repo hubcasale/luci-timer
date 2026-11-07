@@ -149,6 +149,7 @@ class LightTimer:
     last_expired: datetime | None = None
     saved: dict[str, Any] | None = None   # timer salvato prima del riavvio, da ripristinare al primo stato noto
     pending: tuple[datetime, int] | None = None   # durata una tantum chiesta prima che la luce si accenda: (valida fino a, minuti)
+    pending_hold: datetime | None = None          # "tieni accesa" chiesto a luce spenta: vale per la prossima accensione fino a questo istante
 
     # ------------------------------------------------------------------ stato
     def status(self, master: bool) -> str:
@@ -202,6 +203,11 @@ class LightTimer:
             if now <= until:
                 minutes = wanted
         self.end = now + timedelta(minutes=minutes) if self.active(master) else None
+        if self.pending_hold is not None:
+            until, self.pending_hold = self.pending_hold, None
+            if now <= until:
+                self.held = True
+                self.end = None
 
     def _finish(self, now: datetime) -> Cycle | None:
         cycle = None
@@ -267,6 +273,10 @@ class LightTimer:
             return True
         self.pending = (now + timedelta(seconds=30), minutes)
         return False
+
+    def hold_when_on(self, now: datetime) -> None:
+        """Tieni accesa chiesto a luce spenta: si applica all'accensione che segue (entro 30 s)."""
+        self.pending_hold = now + timedelta(seconds=30)
 
     def hold(self) -> bool:
         """Tieni accesa: niente scadenza finché la luce non viene spenta."""

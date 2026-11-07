@@ -207,3 +207,17 @@ def test_start_for_when_on_and_when_off():
     t3.light_changed(T0, True, True)
     assert t3.start_for(T0 + timedelta(minutes=1), 3) is True
     assert t3.end == T0 + timedelta(minutes=4)
+
+
+def test_hold_when_on_applies_to_next_turn_on_only():
+    t = mk(5)
+    t.hold_when_on(T0)
+    t.light_changed(T0 + timedelta(seconds=3), True, True)
+    assert t.held is True and t.end is None and t.status(True) == "tenuta"
+    t.light_changed(T0 + timedelta(minutes=1), False, True)          # spenta: la tenuta finisce
+    t.light_changed(T0 + timedelta(minutes=2), True, True)
+    assert t.held is False and t.end is not None
+    late = mk(5)
+    late.hold_when_on(T0)
+    late.light_changed(T0 + timedelta(minutes=5), True, True)         # troppo tardi
+    assert late.held is False

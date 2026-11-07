@@ -32,6 +32,26 @@ class EnabledSwitch(LuciEntity, SwitchEntity):
         self.controller.set_light(self._key, enabled=False)
 
 
+class HoldSwitch(LuciEntity, SwitchEntity):
+    """Tieni accesa: finché è acceso la luce non si spegne da sola. Si presta come "bypass" alle automazioni con sensore."""
+
+    _attr_icon = "mdi:timer-lock-outline"
+
+    def __init__(self, controller: LuciController, timer: LightTimer) -> None:
+        super().__init__(controller, f"{timer.cfg.key}_tenuta", "tenuta", light_device(controller, timer))
+        self._key = timer.cfg.key
+
+    @property
+    def is_on(self) -> bool:
+        return self.controller.timers[self._key].held
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        self.controller.set_hold(self.controller.timers[self._key].cfg.entity, True)
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        self.controller.set_hold(self.controller.timers[self._key].cfg.entity, False)
+
+
 class MasterSwitch(LuciEntity, SwitchEntity):
     _attr_icon = "mdi:timer-cog"
 
@@ -53,4 +73,5 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     controller: LuciController = hass.data[DOMAIN][entry.entry_id]
     entities: list[SwitchEntity] = [MasterSwitch(controller)]
     entities += [EnabledSwitch(controller, t) for t in controller.timers.values()]
+    entities += [HoldSwitch(controller, t) for t in controller.timers.values()]
     async_add_entities(entities)

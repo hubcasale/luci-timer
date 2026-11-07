@@ -193,6 +193,28 @@ class LuciController:
             self._update()
         return ok
 
+    @callback
+    def set_hold(self, entity: str, on: bool) -> bool:
+        """Interruttore "Tieni accesa": acceso ferma il timer (accendendo la luce se serve), spento riprende il timer."""
+        timer = self.timers.get(entity.replace(".", "_"))
+        if timer is None:
+            return False
+        now = dt_util.now()
+        if on:
+            if timer.on is True:
+                ok = timer.hold()
+            else:
+                timer.hold_when_on(now)
+                self._call("homeassistant", "turn_on", {"entity_id": entity})
+                ok = True
+        else:
+            timer.pending_hold = None
+            ok = timer.release(now, self.master) if timer.held else False
+        if ok:
+            self._save_soon()
+            self._update()
+        return ok
+
     # ------------------------------------------------------------------ impostazioni
     @callback
     def apply_options(self) -> None:

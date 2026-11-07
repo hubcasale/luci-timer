@@ -40,6 +40,9 @@
       },
       "generale": {
         "name": "Timer luci attivi"
+      },
+      "tenuta": {
+        "name": "Tieni accesa"
       }
     }
   },

@@ -58,8 +58,13 @@ Un dispositivo "Timer *nome*" per ogni luce:
 | `sensor.timer_<nome>_scadenza` | data e ora di spegnimento |
 | `number.timer_<nome>_durata` | durata in minuti |
 | `switch.timer_<nome>_timer_attivo` | abilita il timer di quella luce |
+| `switch.timer_<nome>_tieni_accesa` | tieni accesa: finché è acceso la luce non si spegne da sola (si spegne da solo quando spegni la luce) |
 
 E nel dispositivo "Timer luci": `switch.timer_luci_timer_luci_attivi` (interruttore generale) e `sensor.timer_luci_timer_in_corso` (quanti timer in corso).
+
+## Tieni accesa e automazioni con sensore
+
+Il timer e **Tieni accesa** fermano solo il timer di questa integrazione. Se la luce è comandata anche da un'automazione con sensore di movimento (per esempio il blueprint *Sensor Light* di Blackshome), quell'automazione la spegne comunque dopo il suo ritardo. Per evitarlo, usa l'interruttore `tieni_accesa` come **bypass** dell'automazione. Nel blueprint *Sensor Light*: "Use The Bypass Options" → *Keep the lights current state* e, in "Bypass Switch - Keep The Lights Current State", l'interruttore `switch.timer_<nome>_tieni_accesa`. Finché è acceso, il sensore non spegne la luce.
 
 ## Servizi
 

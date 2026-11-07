@@ -258,4 +258,4 @@ window.customCards.push({
 });
 
 // eslint-disable-next-line no-console
-console.info("%c LUCI-TIMER %c v0.5.0 ", "color: white; background: #b45309; font-weight: 700;", "color: #b45309; background: white; font-weight: 700;");
+console.info("%c LUCI-TIMER %c v0.6.0 ", "color: white; background: #b45309; font-weight: 700;", "color: #b45309; background: white; font-weight: 700;");
