@@ -179,3 +179,52 @@ export function statsLine(s: LightStats): string {
 export function clampMinutes(v: number): number {
   return Math.min(720, Math.max(1, Math.round(v)));
 }
+
+// ---- editor della scheda ---------------------------------------------------
+
+/** La configurazione della scheda vista dall'editor: le chiavi del modulo più tutto quello che ci hanno messo altri (dimensioni di Home Assistant, card_mod…). */
+export type CardFormConfig = { type: string } & Record<string, unknown>;
+
+/** I valori del modulo dell'editor: tutti presenti, con il comportamento normale dove la configurazione tace. */
+export interface CardFormValues {
+  title: string;
+  only_on: boolean;
+  header: boolean;
+  display: "button" | "tile";
+  color: string;
+  lights: string[];
+}
+
+export function cardFormValues(config: CardFormConfig): CardFormValues {
+  return {
+    title: typeof config.title === "string" ? config.title : "",
+    only_on: config.only_on === true,
+    header: config.header !== false,
+    display: config.display === "tile" ? "tile" : "button",
+    color: typeof config.color === "string" && config.color !== "none" ? config.color : "",
+    lights: Array.isArray(config.lights) ? config.lights.map(String) : [],
+  };
+}
+
+/**
+ * Scrive i valori del modulo dell'editor nella configurazione. Tocca solo le chiavi del modulo: tutte le altre restano
+ * come sono (entry_id, le dimensioni scelte nella scheda «Layout», card_mod…). Quello che vale come il comportamento
+ * normale non si scrive, così la configurazione resta corta.
+ */
+export function applyCardForm(config: CardFormConfig, v: Record<string, unknown>): CardFormConfig {
+  const next: CardFormConfig = { ...config };
+  const put = (key: string, value: unknown, on: boolean) => {
+    if (on) next[key] = value;
+    else delete next[key];
+  };
+  const title = typeof v.title === "string" ? v.title.trim() : "";
+  put("title", title, title !== "");
+  put("only_on", true, v.only_on === true);
+  put("header", false, v.header === false);
+  put("display", "tile", v.display === "tile");
+  const color = typeof v.color === "string" ? v.color.trim() : "";
+  put("color", color, color !== "" && color !== "none");
+  const lights = Array.isArray(v.lights) ? v.lights.map(String) : [];
+  put("lights", lights, lights.length > 0);
+  return next;
+}

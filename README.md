@@ -25,7 +25,12 @@ title: Timer luci
 lights: [light.luce_scale, light.luce_ingresso]   # mostra solo queste luci
 header: false                                     # piccolo pulsante del timer (solo a luce accesa) con popup
 only_on: true                                     # all'inizio solo le tessere delle luci accese
+color: amber                                      # colore proprio della scheda: sfondo tinto e bordo, tessere come sono
 ```
+
+Tutte queste opzioni si scelgono anche da **Modifica scheda** (editor visuale): titolo, solo le accese, intestazione, pulsante o tessera, colore e luci da mostrare. Durate, sensori e avvisi restano nell'ingranaggio della scheda.
+
+Con `color` la scheda prende un colore proprio, come un blocco colorato della plancia: lo sfondo ne prende una tinta e il bordo lo segue, le tessere delle luci restano come le disegna il tema. Vale un nome della tavolozza di Home Assistant (`amber`, `blue`…) oppure, nello YAML, un colore CSS (`#ffb300`).
 
 Con `only_on: true` la scheda mostra solo le luci accese (se non ce n'è nessuna, "Nessuna luce accesa"); il pulsante **Solo accese / Tutte** in alto permette di cambiare vista.
 

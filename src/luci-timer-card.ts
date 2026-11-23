@@ -1,6 +1,8 @@
 import { LitElement, html, css, nothing } from "lit";
 import { property, state } from "lit/decorators.js";
 import { filterTiles, summaryText, tileModel, timerButton, type TileModel } from "./card-logic";
+import { tintColor } from "./color-logic";
+import "./card-editor";
 import "./settings-dialog";
 import "./light-dialog";
 import "./stats-dialog";
@@ -18,6 +20,8 @@ interface CardConfig {
   header?: boolean;
   /** con header: false: "button" (predefinito) = piccolo pulsante del timer, solo a luce accesa, che apre un popup; "tile" = tessera compatta */
   display?: "button" | "tile";
+  /** colore proprio della scheda: lo sfondo ne prende una tinta e il bordo lo segue, le tessere restano come sono; nome della tavolozza di Home Assistant o colore CSS */
+  color?: string;
 }
 
 /** Scheda dei timer luci: una tessera per luce con conto alla rovescia e pulsanti grandi, pensata per il tablet (tocco). */
@@ -38,6 +42,10 @@ export class LuciTimerCard extends LitElement {
     this._onlyOn = config.only_on === true;
     this._info = null;
     this._loadedAt = 0;
+    const tint = tintColor(config.color);
+    this.toggleAttribute("tinted", tint !== undefined);
+    if (tint !== undefined) this.style.setProperty("--lt-tint", tint);
+    else this.style.removeProperty("--lt-tint");
   }
   getCardSize(): number {
     return this._buttonMode() ? 1 : 6;
@@ -53,6 +61,10 @@ export class LuciTimerCard extends LitElement {
   }
   static getStubConfig(): CardConfig {
     return { type: "custom:luci-timer-card" };
+  }
+  /** Editor visuale: titolo, cosa mostrare e colore si scelgono da «Modifica scheda». */
+  static getConfigElement(): HTMLElement {
+    return document.createElement("luci-timer-card-editor");
   }
 
   connectedCallback(): void {
@@ -209,6 +221,10 @@ export class LuciTimerCard extends LitElement {
     .tbtn.idle { border-color: rgba(127, 127, 127, 0.5); background: rgba(127, 127, 127, 0.14); }
     .tbtn.idle ha-icon { color: var(--secondary-text-color, #727272); }
     ha-card { overflow: hidden; }
+    /* opzione color: la tinta si mescola allo sfondo della scheda del tema; le tessere con il timer in corso o tenute accese, che sono velature, tengono sotto lo sfondo normale della scheda */
+    :host([tinted]) ha-card { background: color-mix(in srgb, var(--lt-tint) 30%, var(--ha-card-background, var(--card-background-color, #fff))); border: 1px solid color-mix(in srgb, var(--lt-tint) 55%, transparent); }
+    :host([tinted]) .tile.running { background: linear-gradient(rgba(245, 158, 11, 0.12), rgba(245, 158, 11, 0.12)), var(--card-background-color, #fff); }
+    :host([tinted]) .tile.held { background: linear-gradient(rgba(96, 165, 250, 0.13), rgba(96, 165, 250, 0.13)), var(--card-background-color, #fff); }
     .pad { padding: 14px 16px 16px; }
     .pad.compact { padding: 8px; }
     .head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
@@ -258,4 +274,4 @@ window.customCards.push({
 });
 
 // eslint-disable-next-line no-console
-console.info("%c LUCI-TIMER %c v0.6.0 ", "color: white; background: #b45309; font-weight: 700;", "color: #b45309; background: white; font-weight: 700;");
+console.info("%c LUCI-TIMER %c v0.7.0 ", "color: white; background: #b45309; font-weight: 700;", "color: #b45309; background: white; font-weight: 700;");

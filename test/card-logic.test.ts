@@ -1,8 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  timerButton, START_CHOICES, filterTiles, friendlyName, addableEntities, asStatus, clampMinutes, countdown, fmtMinutes, lightError, lightsError, motionEntities, newLight, statsLine, summaryText, tileModel,
-} from "../src/card-logic";
+  timerButton, START_CHOICES, filterTiles, friendlyName, addableEntities, asStatus, clampMinutes, countdown, fmtMinutes, lightError, lightsError, motionEntities, newLight, statsLine, summaryText, tileModel, applyCardForm, cardFormValues, type CardFormConfig } from "../src/card-logic";
 import type { HassEntity, LightInfo } from "../src/types";
 
 const NOW = Date.UTC(2026, 10, 2, 20, 0, 0);
@@ -138,4 +137,27 @@ test("timerButton: icona per ogni situazione", () => {
   assert.equal(timerButton(mk({ running: false, held: true })).icon, "mdi:timer-lock-outline");
   assert.equal(timerButton(mk({ running: false })).icon, "mdi:timer-off-outline");
   assert.ok(START_CHOICES.includes(15));
+});
+
+test("editor: una configurazione vuota dà i valori normali e resta com'è", () => {
+  const base: CardFormConfig = { type: "custom:luci-timer-card" };
+  assert.deepEqual(cardFormValues(base), { title: "", only_on: false, header: true, display: "button", color: "", lights: [] });
+  assert.deepEqual(applyCardForm(base, { ...cardFormValues(base) }), base);
+});
+
+test("editor: il modulo cambia solo le sue chiavi, le altre restano (entry_id, dimensioni del Layout, card_mod)", () => {
+  const cfg: CardFormConfig = { type: "custom:luci-timer-card", entry_id: "abc", lights: ["light.a"], grid_options: { columns: 6, rows: 3 }, card_mod: { style: "x" } };
+  assert.deepEqual(applyCardForm(cfg, { ...cardFormValues(cfg) }), cfg);
+  const next = applyCardForm(cfg, { ...cardFormValues(cfg), title: " Scale ", color: "amber", only_on: true });
+  assert.deepEqual(next, { ...cfg, title: "Scale", color: "amber", only_on: true });
+});
+
+test("editor: quello che vale come il comportamento normale non si scrive", () => {
+  const full: CardFormConfig = { type: "custom:luci-timer-card", title: "T", only_on: true, header: false, display: "tile", color: "blue", lights: ["light.a"] };
+  assert.deepEqual(cardFormValues(full), { title: "T", only_on: true, header: false, display: "tile", color: "blue", lights: ["light.a"] });
+  assert.deepEqual(applyCardForm(full, { title: "", only_on: false, header: true, display: "button", color: "none", lights: [] }), { type: "custom:luci-timer-card" });
+  // il selettore del colore, svuotato, non manda la chiave
+  assert.equal("color" in applyCardForm(full, { title: "T", only_on: true, header: false, display: "tile", lights: ["light.a"] }), false);
+  // uno YAML con `color: none` scritto a mano si legge come «nessun colore»
+  assert.equal(cardFormValues({ type: "custom:luci-timer-card", color: "none" }).color, "");
 });
